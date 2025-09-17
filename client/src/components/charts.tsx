@@ -63,7 +63,7 @@ export default function RequirementsChart({ project }: RequirementsChartProps) {
           <CardTitle>Requirements Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
+          <div className="h-64" data-testid="pie-chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -93,7 +93,7 @@ export default function RequirementsChart({ project }: RequirementsChartProps) {
           <CardTitle>Requirements by Stakeholder</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
+          <div className="h-64" data-testid="bar-chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stakeholderData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" />

@@ -1,5 +1,51 @@
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import type { Project } from "@shared/schema";
+
+// Helper function to capture charts as images
+async function captureChartsAsImages() {
+  const chartImages = [];
+  
+  try {
+    // Try to find chart containers in the DOM
+    const pieChartContainer = document.querySelector('[data-testid="pie-chart-container"]');
+    const barChartContainer = document.querySelector('[data-testid="bar-chart-container"]');
+    
+    if (pieChartContainer) {
+      const pieCanvas = await html2canvas(pieChartContainer as HTMLElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        width: 400,
+        height: 300
+      });
+      chartImages.push({
+        type: 'pie',
+        dataURL: pieCanvas.toDataURL('image/png'),
+        width: 400,
+        height: 300
+      });
+    }
+    
+    if (barChartContainer) {
+      const barCanvas = await html2canvas(barChartContainer as HTMLElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        width: 400,
+        height: 300
+      });
+      chartImages.push({
+        type: 'bar',
+        dataURL: barCanvas.toDataURL('image/png'),
+        width: 400,
+        height: 300
+      });
+    }
+  } catch (error) {
+    console.warn('Could not capture charts:', error);
+  }
+  
+  return chartImages;
+}
 
 export async function generatePDF(project: Project) {
   const doc = new jsPDF();
@@ -108,6 +154,50 @@ export async function generatePDF(project: Project) {
       doc.setFont("helvetica", "normal");
       currentY = addText(req.description, margin, currentY + 5, pageWidth - 2 * margin, 10) + 5;
     });
+  }
+
+  // Try to include charts
+  try {
+    const charts = await captureChartsAsImages();
+    if (charts.length > 0) {
+      doc.addPage();
+      currentY = margin;
+      
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      currentY = addText("Requirements Analysis", margin, currentY, undefined, 14);
+      
+      // Add charts
+      let chartY = currentY + 20;
+      charts.forEach((chart, index) => {
+        if (chartY > 150) {
+          doc.addPage();
+          chartY = margin;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        const chartTitle = chart.type === 'pie' ? 'Requirements Distribution' : 'Requirements by Stakeholder';
+        chartY = addText(chartTitle, margin, chartY, undefined, 12);
+        
+        // Scale chart to fit page
+        const maxWidth = pageWidth - 2 * margin;
+        const maxHeight = 120;
+        const aspectRatio = chart.width / chart.height;
+        let chartWidth = maxWidth;
+        let chartHeight = chartWidth / aspectRatio;
+        
+        if (chartHeight > maxHeight) {
+          chartHeight = maxHeight;
+          chartWidth = chartHeight * aspectRatio;
+        }
+        
+        doc.addImage(chart.dataURL, 'PNG', margin, chartY + 10, chartWidth, chartHeight);
+        chartY += chartHeight + 30;
+      });
+    }
+  } catch (error) {
+    console.warn('Could not add charts to PDF:', error);
   }
 
   // Summary Statistics
